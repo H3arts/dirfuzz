@@ -1,0 +1,8 @@
+MONGODB_HOST = ""
+MONGODB_PORT = 27017
+MONGODB_USER = ""
+MONGODB_PASSWORD = ""
+DB_NAME = ""
+
+BLACK_LIST = []
+filters = []

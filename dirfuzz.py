@@ -16,7 +16,9 @@ import libs.requests as requests
 from libs.output import *
 from libs.utils.FileUtils import FileUtils
 import threading
-import Queue
+from queue import Queue
+from database import db
+from config import filters
 
 # 全局配置
 using_dic = './dics/dirs.txt'  # 使用的字典文件
@@ -60,9 +62,9 @@ class WyWorker(threading.Thread):
                 if results.status_code == requests.codes.ok:
                     dir_exists.append(url)
                 msg = "[%s]:%s \n" % (results.status_code, results.url)
-                #self.output.printInLine(msg)
-            except Exception, e:
-                print e  # 队列阻塞
+                # self.output.printInLine(msg)
+            except Exception as e:
+                print(e)  # 队列阻塞
                 break
 
 
@@ -76,7 +78,7 @@ def fuzz_start(siteurl, file_ext):
     dir_exists = []
 
     # 生成队列堆栈
-    queue = Queue.Queue()
+    queue = Queue()
 
     for line in FileUtils.getLines(using_dic):
         line = '%s/%s' % (siteurl.rstrip('/'), line.replace('%EXT%', file_ext))
@@ -89,7 +91,7 @@ def fuzz_start(siteurl, file_ext):
 
     # 初始化线程组
     threads = []
-    for i in xrange(threads_count):
+    for i in range(threads_count):
         threads.append(WyWorker(queue))
     # 启动线程
     for t in threads:
@@ -102,13 +104,30 @@ def fuzz_start(siteurl, file_ext):
     if len(dir_exists) < resulst_cnt_val:
         for url in dir_exists:
             output.printWarning(url)
+        save_to_database(siteurl, dir_exists)
     output.printHeader('-' * 60)
 
 
+def fuzz_domain_from_db():
+    domains = db.domains.distinct("domain")
+    for domain in domains:
+        for f in filters:
+            if f in domain:
+                fuzz_start(domain, 'php')
+
+
+def save_to_database(domain, dir_exists):
+    if db.results.count({"domain": domain}):
+        db.results.remove({"domain": domain})
+    for url in dir_exists:
+        db.results.save({"domain": domain, "url_path": url})
+
+
 if __name__ == "__main__":
-    if len(sys.argv) == 3:
-        fuzz_start(sys.argv[1], sys.argv[2])
-        sys.exit(0)
-    else:
-        print ("usage: %s www.wooyun.org php" % sys.argv[0])
-        sys.exit(-1)
+    # if len(sys.argv) == 3:
+    #     fuzz_start(sys.argv[1], sys.argv[2])
+    #     sys.exit(0)
+    # else:
+    #     print ("usage: %s www.wooyun.org php" % sys.argv[0])
+    #     sys.exit(-1)
+    fuzz_domain_from_db()
