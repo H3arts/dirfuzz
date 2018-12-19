@@ -60,7 +60,7 @@ class WyWorker(threading.Thread):
                 if results.status_code == requests.codes.ok:
                     dir_exists.append(url)
                 msg = "[%s]:%s \n" % (results.status_code, results.url)
-                self.output.printInLine(msg)
+                #self.output.printInLine(msg)
             except Exception, e:
                 print e  # 队列阻塞
                 break
